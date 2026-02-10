@@ -1,2 +1,15 @@
 workers_dev = true
+name = "heartbeat"
+main = "worker.js"
+compatibility_date = "2026-01-28"
+
+[durable_objects]
+bindings = [
+  { name = "HEARTBEAT", class_name = "HeartbeatDO" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["HeartbeatDO"]
+
 
