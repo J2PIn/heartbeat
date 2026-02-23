@@ -37,9 +37,15 @@ export class HeartbeatDO {
 
     // "/" -> "/app" (backwards compatible)
     if (request.method === "GET" && path === "/") {
-      const t = url.searchParams.get("tenant");
-      const loc = t ? ("/app?tenant=" + encodeURIComponent(t)) : "/app";
-      return new Response(null, { status: 302, headers: { Location: loc, ...corsHeaders() } });
+      return new Response(landingHtml(), {
+        headers: { "content-type": "text/html; charset=utf-8", ...corsHeaders() },
+      });
+    }
+    
+    if (request.method === "GET" && path === "/app") {
+      return new Response(dashboardHtml(tenant), {
+        headers: { "content-type": "text/html; charset=utf-8", ...corsHeaders() },
+      });
     }
 
     // Dashboard
@@ -353,63 +359,314 @@ function corsHeaders() {
 // --------- HTML ---------
 function landingHtml() {
   return `<!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Heartbeat</title>
+  <title>he4rtbe4t — verifiable heartbeat</title>
+  <meta name="description" content="Verifiable heartbeat for systems and work. Signed pings + facts-based signals from tools like Figma/GitHub/Jira." />
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; line-height: 1.4; color:#111; }
-    .wrap { max-width: 980px; margin: 0 auto; }
-    h1 { font-size: 44px; margin: 18px 0 10px; }
-    p { color:#444; font-size: 16px; }
-    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
-    .card { border: 1px solid #eee; border-radius: 14px; padding: 16px; background: #fff; }
-    .tag { display:inline-block; font-size:12px; font-weight:800; padding: 4px 10px; border-radius: 999px; border: 1px solid #eee; }
-    .btn { display:inline-block; margin-top: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; text-decoration:none; color:#111; font-weight:800; }
-    .btn.primary { background:#111; color:#fff; border-color:#111; }
-    ul { margin: 10px 0 0 18px; color:#333; }
-    .muted { color:#666; font-size:12px; margin-top: 18px; }
-    code { background:#f6f6f6; padding: 2px 6px; border-radius: 6px; }
-    @media (max-width: 780px){ .grid { grid-template-columns: 1fr; } }
+    :root{
+      --bg: #0b0d12;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.08);
+      --border: rgba(255,255,255,.12);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --muted2: rgba(255,255,255,.55);
+      --ok: #00d084;
+      --warn: #ffb020;
+      --bad: #ff4d4d;
+      --shadow: 0 10px 40px rgba(0,0,0,.35);
+      --radius: 18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      color: var(--text);
+      background: radial-gradient(1000px 600px at 20% -10%, rgba(0,208,132,.25), transparent 55%),
+                  radial-gradient(900px 600px at 85% 10%, rgba(255,176,32,.18), transparent 55%),
+                  radial-gradient(800px 500px at 60% 120%, rgba(120,120,255,.12), transparent 60%),
+                  var(--bg);
+    }
+    a{ color: inherit; text-decoration: none; }
+    .wrap{ max-width: 1060px; margin: 0 auto; padding: 28px 18px 46px; }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 8px);
+      background: linear-gradient(180deg, var(--panel), transparent);
+      box-shadow: var(--shadow);
+      position: sticky; top: 14px; backdrop-filter: blur(10px);
+    }
+    .brand{ display:flex; align-items:center; gap:10px; font-weight: 900; letter-spacing:.02em; }
+    .logo{
+      width: 34px; height: 34px; border-radius: 12px;
+      background: radial-gradient(circle at 30% 30%, rgba(0,208,132,.9), rgba(0,208,132,.15) 55%, rgba(255,255,255,.05) 70%),
+                  linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,0));
+      border: 1px solid rgba(255,255,255,.16);
+      position: relative;
+      overflow: hidden;
+    }
+    .logo:after{
+      content:"";
+      position:absolute; inset:-60%;
+      background: radial-gradient(circle, rgba(255,255,255,.25), transparent 60%);
+      animation: glow 3.2s ease-in-out infinite;
+      transform: translate(12%, 8%);
+    }
+    @keyframes glow{
+      0%,100%{ transform: translate(12%, 8%); opacity:.55; }
+      50%{ transform: translate(-6%, -10%); opacity:.9; }
+    }
+    .navlinks{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 9px 12px; border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      font-weight: 800; font-size: 12px;
+    }
+    .btn{
+      display:inline-flex; align-items:center; gap:10px;
+      padding: 10px 14px; border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-weight: 900;
+    }
+    .btn.primary{
+      border-color: rgba(0,208,132,.35);
+      background: linear-gradient(180deg, rgba(0,208,132,.22), rgba(0,208,132,.10));
+    }
+    .btn:hover{ filter: brightness(1.08); }
+
+    .hero{ padding: 28px 8px 0; }
+    .kicker{
+      display:inline-flex; align-items:center; gap:10px;
+      padding: 8px 12px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .dot{
+      width: 9px; height: 9px; border-radius: 999px; background: var(--ok);
+      box-shadow: 0 0 0 rgba(0,208,132,.35);
+      animation: pulse 1.4s infinite;
+    }
+    @keyframes pulse{
+      0%{ box-shadow: 0 0 0 0 rgba(0,208,132,.35); }
+      70%{ box-shadow: 0 0 0 12px rgba(0,208,132,0); }
+      100%{ box-shadow: 0 0 0 0 rgba(0,208,132,0); }
+    }
+    h1{
+      margin: 14px 0 10px;
+      font-size: clamp(34px, 5vw, 60px);
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+    }
+    .lead{
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+    .ctaRow{
+      margin-top: 18px;
+      display:flex; gap:12px; flex-wrap:wrap; align-items:center;
+    }
+    .code{
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(255,255,255,.80);
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      border-radius: 14px;
+      padding: 12px 14px;
+      max-width: 780px;
+      overflow:auto;
+      box-shadow: var(--shadow);
+    }
+
+    .grid{
+      margin-top: 22px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .nav{ position: static; }
+    }
+    .card{
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--panel2), rgba(255,255,255,.03));
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .card h3{ margin: 0 0 10px; font-size: 16px; letter-spacing: -.01em; }
+    .muted{ color: var(--muted); }
+    .small{ color: var(--muted2); font-size: 12px; line-height: 1.45; }
+
+    .list{ margin: 10px 0 0; padding: 0; list-style: none; display:grid; gap:10px; }
+    .li{
+      display:flex; gap:10px; align-items:flex-start;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      background: rgba(0,0,0,.12);
+    }
+    .icon{
+      width: 30px; height: 30px; border-radius: 12px;
+      display:grid; place-items:center;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      flex: 0 0 auto;
+      font-weight: 900;
+    }
+
+    .pricing{
+      display:grid; gap:12px;
+    }
+    .priceTag{
+      display:flex; align-items:baseline; gap:10px;
+      margin-top: 10px;
+    }
+    .price{
+      font-size: 26px; font-weight: 950; letter-spacing: -.02em;
+    }
+    .per{ color: var(--muted2); font-weight: 800; }
+    .sep{ height:1px; background: rgba(255,255,255,.10); margin: 12px 0; }
+
+    footer{
+      margin-top: 18px;
+      padding: 14px 4px 0;
+      color: var(--muted2);
+      display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+      font-size: 12px;
+    }
+    footer a{ color: var(--muted); text-decoration: underline; text-decoration-color: rgba(255,255,255,.25); }
+
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="tag">Heartbeat</div>
-    <h1>Verifiable heartbeat for systems and work.</h1>
-    <p>
-      A lightweight dashboard that shows what’s alive, what’s degraded, and what’s down — with optional signed pings for credibility.
-      Next: facts-based heartbeat (Figma / GitHub / Jira) so activity is backed by evidence.
-    </p>
+    <div class="nav">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>he4rtbe4t</div>
+      </div>
+      <div class="navlinks">
+        <span class="pill">Signed pings</span>
+        <span class="pill">Facts (Figma/GitHub/Jira)</span>
+        <a class="btn" href="/app?tenant=public">Open demo</a>
+        <a class="btn primary" href="#pricing">Get Premium</a>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="kicker"><span class="dot"></span> Verifiable monitoring for builders</div>
+      <h1>Know what’s alive.<br/>Prove it with facts.</h1>
+      <div class="lead">
+        Heartbeat is a lightweight dashboard that tracks systems, agents, and teams.
+        Upgrade to premium to require signed pings and receive webhook alerts.
+        Next: facts-based heartbeat from your tools (Figma/GitHub/Jira) — so activity is backed by evidence, not vibes.
+      </div>
+
+      <div class="ctaRow">
+        <a class="btn primary" href="/app?tenant=public">Try the dashboard</a>
+        <a class="btn" href="#how">How it works</a>
+        <a class="btn" href="#facts">Facts-based heartbeat</a>
+      </div>
+
+      <div class="code" aria-label="Example ping">
+<code>curl -X POST "https://he4rtbe4t.site/ping?tenant=public" \\
+  -H "content-type: application/json" \\
+  -d '{"id":"jussi-mac","meta":{"env":"prod"}}'</code>
+      </div>
+    </div>
 
     <div class="grid">
-      <div class="card">
-        <div class="tag">Free</div>
-        <h2>Start monitoring</h2>
-        <ul>
-          <li>Dashboard</li>
-          <li>Unsigned pings allowed</li>
-          <li>Per-tenant separation</li>
+      <div class="card" id="how">
+        <h3>How it works</h3>
+        <div class="muted">One page. One glance. Clear states.</div>
+        <ul class="list">
+          <li class="li">
+            <div class="icon">OK</div>
+            <div>
+              <div><strong>Operational</strong> — fresh heartbeat</div>
+              <div class="small">Shows last seen, age, IP/UA, and verification status.</div>
+            </div>
+          </li>
+          <li class="li">
+            <div class="icon">SIG</div>
+            <div>
+              <div><strong>Signed pings</strong> (premium)</div>
+              <div class="small">Require HMAC signatures so your status can’t be spoofed.</div>
+            </div>
+          </li>
+          <li class="li">
+            <div class="icon">AL</div>
+            <div>
+              <div><strong>Webhook alerts</strong> (premium)</div>
+              <div class="small">Send alerts on state change to Slack/Discord/your endpoint.</div>
+            </div>
+          </li>
         </ul>
-        <a class="btn" href="/app?tenant=public">Open dashboard</a>
       </div>
 
-      <div class="card">
-        <div class="tag">Premium</div>
-        <h2>Credibility + alerts</h2>
-        <ul>
-          <li>Signed pings required</li>
-          <li>Webhook alerts on state change</li>
-          <li>Facts-based integrations (next)</li>
-        </ul>
-        <a class="btn primary" href="/app?tenant=public">Upgrade (next)</a>
+      <div class="card pricing" id="pricing">
+        <h3>Pricing</h3>
+        <div class="muted">Start free. Upgrade when credibility matters.</div>
+
+        <div class="sep"></div>
+
+        <div>
+          <div class="pill">Free</div>
+          <div class="priceTag">
+            <div class="price">€0</div><div class="per">forever</div>
+          </div>
+          <div class="small">Dashboard + optional signing, per-tenant separation.</div>
+          <a class="btn" style="margin-top:12px;" href="/app?tenant=public">Open dashboard</a>
+        </div>
+
+        <div class="sep"></div>
+
+        <div>
+          <div class="pill">Premium</div>
+          <div class="priceTag">
+            <div class="price">€19</div><div class="per">/ month</div>
+          </div>
+          <div class="small">Signed pings required + webhook alerts + facts (next).</div>
+          <a class="btn primary" style="margin-top:12px;" href="/app?tenant=public">Request Premium (next)</a>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="small" id="facts">
+          <strong>Facts-based heartbeat:</strong> push evidence events into Heartbeat from your tools.
+          Example: “Figma file updated”, “PR merged”, “Ticket moved to Done”.
+        </div>
       </div>
     </div>
 
-    <div class="muted">
-      Dashboard: <code>/app</code> • Landing: <code>/landing</code>
-    </div>
+    <footer>
+      <div>© ${new Date().getFullYear()} he4rtbe4t.site</div>
+      <div>
+        <a href="/app?tenant=public">Dashboard</a> ·
+        <a href="/facts?tenant=public">Facts API</a> ·
+        <a href="/clients?tenant=public">Clients API</a>
+      </div>
+    </footer>
   </div>
 </body>
 </html>`;
